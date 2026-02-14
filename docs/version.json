@@ -1,0 +1,9 @@
+{
+  "db_version": 27,
+  "db_url": "",
+  "db_size_bytes": 0,
+  "db_sha256": "",
+  "gtfs_feed_date": "2026-02-14",
+  "min_app_version": 57,
+  "changelog": "Initial version"
+}

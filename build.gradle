@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.viniciusfortuna.transit'
+version = '1.0'
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.opencsv:opencsv:5.9'
+    implementation 'org.xerial:sqlite-jdbc:3.45.1.0'
+    implementation 'com.google.code.gson:gson:2.11.0'
+}
+
+application {
+    mainClass = 'com.viniciusfortuna.transit.gtfs.GtfsDbBuilder'
+}
+
+run {
+    standardInput = System.in
+}

@@ -1,0 +1,24 @@
+# Gradle
+.gradle/
+build/
+bin/
+
+# IDE
+.classpath
+.project
+.settings/
+*.iml
+.idea/
+
+# Output (local builds)
+output/
+
+# Build artifacts
+*.class
+
+# Downloaded GTFS
+gtfs.zip
+
+# OS
+Thumbs.db
+.DS_Store

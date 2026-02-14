@@ -1,0 +1,115 @@
+name: Check GTFS Feed & Build Database
+
+on:
+  schedule:
+    # Every Monday at 6:00 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download GTFS feed
+        run: |
+          curl -fSL -o gtfs.zip "https://gtfs.halifax.ca/static/google_transit.zip"
+          echo "Downloaded gtfs.zip ($(stat -c%s gtfs.zip) bytes)"
+
+      - name: Compute GTFS hash and compare
+        id: hash_check
+        run: |
+          NEW_HASH=$(sha256sum gtfs.zip | awk '{print $1}')
+          echo "new_hash=$NEW_HASH" >> "$GITHUB_OUTPUT"
+
+          OLD_HASH=""
+          if [ -f docs/gtfs_hash.txt ]; then
+            OLD_HASH=$(cat docs/gtfs_hash.txt | tr -d '[:space:]')
+          fi
+          echo "old_hash=$OLD_HASH" >> "$GITHUB_OUTPUT"
+
+          if [ "$NEW_HASH" = "$OLD_HASH" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "GTFS feed unchanged (hash: $NEW_HASH). Skipping build."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "GTFS feed changed! Old: $OLD_HASH -> New: $NEW_HASH"
+          fi
+
+      - name: Exit early if unchanged
+        if: steps.hash_check.outputs.changed == 'false'
+        run: echo "No changes detected. Done."
+
+      - name: Set up Java 17
+        if: steps.hash_check.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Determine next DB version
+        if: steps.hash_check.outputs.changed == 'true'
+        id: version
+        run: |
+          CURRENT_VERSION=$(jq -r '.db_version' docs/version.json)
+          NEXT_VERSION=$((CURRENT_VERSION + 1))
+          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $CURRENT_VERSION, Next version: $NEXT_VERSION"
+
+      - name: Build database
+        if: steps.hash_check.outputs.changed == 'true'
+        run: |
+          chmod +x gradlew
+          ./gradlew run --args="--local gtfs.zip --version ${{ steps.version.outputs.next }} --output ./output"
+
+      - name: Create GitHub Release
+        if: steps.hash_check.outputs.changed == 'true'
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="db-v${{ steps.version.outputs.next }}"
+          TITLE="GTFS Database v${{ steps.version.outputs.next }} - $(date +'%B %Y')"
+          CHANGELOG=$(jq -r '.changelog' output/version.json)
+
+          gh release create "$TAG" output/busTrack.db.gz \
+            --title "$TITLE" \
+            --notes "$CHANGELOG"
+
+          # Get the actual download URL for the release asset
+          DOWNLOAD_URL=$(gh release view "$TAG" --json assets --jq '.assets[0].url')
+          echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
+          echo "Release created: $TAG"
+          echo "Asset URL: $DOWNLOAD_URL"
+
+      - name: Patch version.json with release URL
+        if: steps.hash_check.outputs.changed == 'true'
+        run: |
+          # Use the GitHub Release asset download URL
+          DOWNLOAD_URL="${{ steps.release.outputs.download_url }}"
+
+          # Patch the version.json from the build output
+          jq --arg url "$DOWNLOAD_URL" '.db_url = $url' output/version.json > docs/version.json
+
+          echo "Patched docs/version.json:"
+          cat docs/version.json
+
+      - name: Update GTFS hash
+        if: steps.hash_check.outputs.changed == 'true'
+        run: |
+          echo "${{ steps.hash_check.outputs.new_hash }}" > docs/gtfs_hash.txt
+
+      - name: Commit and push updated docs
+        if: steps.hash_check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/version.json docs/gtfs_hash.txt
+          git commit -m "Update GTFS database to v${{ steps.version.outputs.next }}"
+          git push
