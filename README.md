@@ -1,5 +1,7 @@
 # bustrack-data — Automated GTFS Database Pipeline
 
+[![Check GTFS Feed](https://github.com/frossty/bustrack-data/actions/workflows/check-gtfs.yml/badge.svg)](https://github.com/frossty/bustrack-data/actions/workflows/check-gtfs.yml)
+
 Automatically builds and publishes Halifax Transit schedule databases for the BusTrack Android app.
 
 ## How it works
