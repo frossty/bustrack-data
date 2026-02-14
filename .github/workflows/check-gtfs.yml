@@ -1,4 +1,4 @@
-name: Check GTFS Feed & Build Database
+name: Check GTFS Feed
 
 on:
   schedule:
