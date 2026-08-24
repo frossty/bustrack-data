@@ -1,9 +1,9 @@
 {
-  "db_version": 30,
-  "db_url": "https://github.com/frossty/bustrack-data/releases/download/db-v30/busTrack.db.gz",
-  "db_size_bytes": 4956698,
-  "db_sha256": "76cf55b9f7f590151dba2d631b34776887a894d159116c8646387ea34ab28c7f",
-  "gtfs_feed_date": "2026-05-18",
+  "db_version": 31,
+  "db_url": "https://github.com/frossty/bustrack-data/releases/download/db-v31/busTrack.db.gz",
+  "db_size_bytes": 4950175,
+  "db_sha256": "574399342df285ee2bdf4b4cc4855675301e5edeb1e06087346e6e3ccc3cea55",
+  "gtfs_feed_date": "2026-08-24",
   "min_app_version": 57,
-  "changelog": "May 2026 schedule update"
+  "changelog": "August 2026 schedule update"
 }
